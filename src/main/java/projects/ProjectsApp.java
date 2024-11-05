@@ -17,10 +17,13 @@ public class ProjectsApp {
 	 // Creating a scanner for user input
 	 private Scanner scanner = new Scanner(System.in);
 	 private ProjectsService projectService = new ProjectsService();
+	 private Project curProject;
 	 
 	 // @formatter:off
 	 private List<String> operations = List.of(
-			 "1) Add a project"
+			 "1) Add a project",
+			 "2) List projects",
+			 "3) Select a project"
 	 );
 	 // @formatter:on
 	 private void processUserSelections() {
@@ -37,6 +40,14 @@ public class ProjectsApp {
 					 
 				 case 1:
 					 createProject();
+					 break;
+					 
+				 case 2:
+					 listProjects();
+					 break;
+					 
+				 case 3:
+					 selectProject();
 					 break;
 				 // Gives the response if input isn't recognized	 
 			     default:
@@ -68,6 +79,24 @@ public class ProjectsApp {
 		 Project dbProject = projectService.addProject(project);
 		 System.out.println("You have successfully created project: " + dbProject);
 		  }
+	 // Choosing a project by its correspondent ID
+	 private void selectProject() {
+		 listProjects();
+		 Integer projectId = getIntInput("Enter a project ID to select a project");
+		 
+		 curProject = null;
+		 
+		 curProject = projectService.fetchProjectById(projectId);
+	 }
+	 // Listing out all projects by ID and name separated by a colon
+	 private void listProjects() {
+		 List<Project> projects = projectService.fetchAllProjects();
+		 
+		 System.out.println("\nProjects:");
+		 
+		 projects.forEach(project -> 
+		 System.out.println("	" + project.getProjectId() + ": " + project.getProjectName()));
+	 }
 	 // Converting the input to a BigDecimal taking null and exception into account
 	 private BigDecimal getDecimalInput(String prompt) {
 		 String input = getStringInput(prompt);
@@ -122,6 +151,13 @@ public class ProjectsApp {
 		    System.out.println("\nThese are the available selection options. Press the Enter key to quit:");
 
 		    operations.forEach(line -> System.out.println("  " + line));
-
+		    // Prints message if could not find project.
+		    if(Objects.isNull(curProject)) {
+		    	System.out.println("\nYou are not working with a project.");
+		    }
+		    // Prints project found.
+		    else {
+		    	System.out.println("\nYou are working with this project: " + curProject);
+		    }
 	 }
 }
