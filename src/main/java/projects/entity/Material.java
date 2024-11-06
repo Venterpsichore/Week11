@@ -48,7 +48,8 @@ public BigDecimal getCost() {
 public void setCost(BigDecimal cost) { 
 	this.cost = cost;
 	}
-// Tags to overriden 
+/* Tags to indicate superclass overrides this subclass method and that this code will be affected. 
+Will also error out if the structure isn't correct.  */
 @Override
 public String toString() {
 	return "ID=" + materialId + ", materialName=" + materialName + ", numRequired=" + numRequired + ", cost=" + cost;

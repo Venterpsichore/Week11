@@ -121,28 +121,32 @@ public Optional<Project> fetchProjectById(Integer projectId) {
  }
 }
 
+// JOINing the CATEGORY_TABLE to PROJECT_CATEGORY_TABLE
 private List<Category> fetchCategoriesForProject(Connection conn,
 		Integer projectId) throws SQLException {
+	
 	//formatter:off
-	String sql = "" 
+	String sql = ""
 			+ "SELECT c.* FROM " + CATEGORY_TABLE + " c "
 			+ "JOIN " + PROJECT_CATEGORY_TABLE + " pc USING (category_id) "
 			+ "WHERE project_id = ?";
 	//formatter:on
 	
 	try(PreparedStatement stmt = conn.prepareStatement(sql)) {
-		setParameter(stmt, 1, projectId, Integer.class);
+		setParameter(stmt, 1, projectId, Integer.class); // Prevents SQL injection 
 		
 		try(ResultSet rs = stmt.executeQuery()) {
-			List<Category> categories = new LinkedList<>();
+			List<Category> categories = new LinkedList<>(); // Iterates through results
 			
 			while(rs.next()) {
-				categories.add(extract(rs, Category.class));
+				categories.add(extract(rs, Category.class)); // Converts iterations into Category objects
 			}
-			return categories;
+			return categories; // Returns list for categories
 			}
 		}
 	}
+
+// Similar actions to fetchCategoriesForProject, now with STEP_TABLE
 private List<Step> fetchStepsForProject(Connection conn, Integer projectId) throws SQLException {
 	String sql = "SELECT * FROM " + STEP_TABLE + " WHERE project_id = ?";
 	
@@ -156,10 +160,12 @@ private List<Step> fetchStepsForProject(Connection conn, Integer projectId) thro
 				steps.add(extract(rs, Step.class));
 			}
 			
-			return steps;	
+			return steps;	// Returns list for steps
 		}
 	}
 }
+
+// Similar actions to fetchCategoriesForProject, now with MATERIAL_TABLE
 private List<Material> fetchMaterialsForProject(Connection conn, Integer projectId)
 throws SQLException {
 	String sql = "SELECT * FROM " + MATERIAL_TABLE + " WHERE project_id = ?";
@@ -174,7 +180,69 @@ throws SQLException {
 				materials.add(extract(rs, Material.class));
 			}
 			
-			return materials;
+			return materials; // Returns list for materials
 		}
 	}
-}}
+}
+// Automates UPDATE action in SQL
+public boolean modifyProjectDetails(Project project) {
+	//formatter:off
+	String sql = ""
+			+ "UPDATE " + PROJECT_TABLE + " SET "
+			+ "project_name = ?, "
+			+ "estimated_hours = ?, "
+			+ "actual_hours = ?, "
+			+ "difficulty = ?, "
+			+ "notes = ? "
+			+ "WHERE project_id = ?";
+	//formatter:on
+	
+	try(Connection conn = DbConnection.getConnection()) {
+		startTransaction(conn);
+		
+		try(PreparedStatement stmt = conn.prepareStatement(sql)) {
+			setParameter(stmt, 1, project.getProjectName(), String.class);
+			setParameter(stmt, 2, project.getEstimatedHours(), BigDecimal.class);
+			setParameter(stmt, 3, project.getActualHours(), BigDecimal.class);
+			setParameter(stmt, 4, project.getDifficulty(), Integer.class);
+			setParameter(stmt, 5, project.getNotes(), String.class);
+			setParameter(stmt, 6, project.getProjectId(), Integer.class);
+
+			boolean modified = stmt.executeUpdate() == 1; // Checks true or false if one record was edited
+			commitTransaction(conn);
+			
+			return modified;
+		}
+		catch(Exception e) {
+			rollbackTransaction(conn);
+			throw new DbException(e);
+		}
+	}
+	catch(SQLException e) {
+		throw new DbException(e);
+  }
+ }
+// Delete method to be called by ProjectService 
+public boolean deleteProject(Integer projectId) {
+	
+	String sql = "DELETE FROM project WHERE project_id = ?"; // Deleting all records from the project w/ ProjectId
+	
+	// Deleting the first row so that projectId is not retrievable by selection
+		try (Connection conn = DbConnection.getConnection()) { 
+				startTransaction(conn);
+				try (PreparedStatement stmt = conn.prepareStatement(sql)) { 
+			    stmt.setInt(1, projectId); // Sets the first record projectId as a parameter to be deleted 
+			    boolean deleted = stmt.executeUpdate() == 1; // Preparing the return deleted;
+			    commitTransaction(conn); // Commits now that the 1 matches number of rows correctly deleted
+			    return deleted;
+			}
+		catch(Exception e) {
+			rollbackTransaction(conn);
+			throw new DbException(e);
+		}
+	}
+	catch(SQLException e) {
+		throw new DbException(e);
+  }
+ }
+}
